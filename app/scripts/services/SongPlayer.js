@@ -26,18 +26,28 @@
             currentBuzzObject = new buzz.sound(song.audioUrl, {
                 formats: ['mp3'],
                 preload: true,
-                volume: SongPlayer.volume
+                volume: SongPlayer.volume || 80
             });
 
             currentBuzzObject.bind('timeupdate', function() {
                 $rootScope.$apply(function() {
                     SongPlayer.currentTime = currentBuzzObject.getTime();
+
+                    if (SongPlayer.currentTime === SongPlayer.currentSong.duration) {
+                        SongPlayer.next();
+                    }
                 });
             });
 
             currentBuzzObject.bind('volumechange', function() {
                 $rootScope.$apply(function() {
                     SongPlayer.volume = currentBuzzObject.getVolume();
+
+                    if (SongPlayer.volume === 0) {
+                        SongPlayer.isMuted = true;
+                    } else {
+                        SongPlayer.isMuted = false;
+                    }
                 });
             });
  
@@ -99,7 +109,39 @@
         * @desc value of the volume
         * @type {Number}
         */
-        SongPlayer.volume = 80;
+        SongPlayer.volume = null;
+
+        /*
+        * @desc boolean based on if volume is 0
+        * @type {Boolean}
+        */
+        SongPlayer.isMuted = false;
+
+        /*
+        * @desc value of the volume
+        * @type {Number}
+        */
+        SongPlayer.volumePriorToMute = null;
+
+        /*
+        * @function muteVolume
+        * @desc Store current volume for unmuteVolume() and set current volume to 0
+        */
+        SongPlayer.muteVolume = function() {
+            SongPlayer.volumePriorToMute = SongPlayer.volume;
+            SongPlayer.volume = 0;
+            SongPlayer.setVolume(SongPlayer.volume);
+        };
+
+        /*
+        * @function unmuteVolume
+        * @desc Set volume to value of volume before mute
+        */
+        SongPlayer.unmuteVolume = function() {
+            SongPlayer.volume = SongPlayer.volumePriorToMute;
+            SongPlayer.setVolume(SongPlayer.volume);
+            SongPlayer.volumePriorToMute = null;
+        };
 
         /*
         * @function setCurrentTime
@@ -124,8 +166,10 @@
                 setSong(song);
                 playSong(song);
             } else if (SongPlayer.currentSong === song) {
-                if (currentBuzzObject.isPaused()) {
-                    playSong(song);
+                if (currentBuzzObject) {
+                    if (currentBuzzObject.isPaused()) {
+                        playSong(song);
+                    }
                 }
             }
         };
@@ -184,7 +228,9 @@
         * @desc Public method - update the volume on change
         */
         SongPlayer.setVolume = function(volume) {
-            currentBuzzObject.setVolume(volume);
+            if (currentBuzzObject) {
+                currentBuzzObject.setVolume(volume);
+            }
         };
 
         return SongPlayer;
